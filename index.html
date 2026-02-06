@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,32 +18,65 @@
     <!-- Data -->
     <script src="data.js"></script>
 </head>
+
 <body class="bg-slate-900 text-slate-100 font-sans antialiased overflow-x-hidden">
 
     <!-- Hero Section -->
     <header class="relative z-10 pt-10 pb-20 px-4 text-center">
         <div class="max-w-4xl mx-auto">
-            <h1 class="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400 mb-6 drop-shadow-lg">
+            <h1
+                class="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400 mb-6 drop-shadow-lg">
                 99 Gün Savaş Planı
             </h1>
             <p class="text-xl text-slate-400 mb-8 max-w-2xl mx-auto font-light">
                 3 Milyon indirmeye giden yolculuk. Adım adım, gün gün.
             </p>
-            
-            <!-- Progress Card -->
-            <div class="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-2xl max-w-lg mx-auto transform hover:scale-105 transition-transform duration-300">
-                <div class="flex justify-between items-end mb-4">
-                    <div>
-                        <span class="text-slate-400 text-sm uppercase tracking-wider">İlerleme</span>
-                        <div class="text-3xl font-bold text-white mt-1" id="totalProgress">0%</div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                <!-- Progress Card -->
+                <div
+                    class="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     </div>
-                    <div class="text-right">
-                        <span class="text-emerald-400 font-bold text-xl" id="completedCount">0</span>
-                        <span class="text-slate-500 text-sm">/ 99 Gün</span>
+                    <div class="relative z-10">
+                        <div class="text-slate-400 text-xs uppercase tracking-wider mb-1">İlerleme</div>
+                        <div class="text-3xl font-bold text-white" id="totalProgress">0%</div>
+                        <div class="w-full bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                            <div id="progressBar" class="h-full bg-emerald-500 transition-all duration-1000"
+                                style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
-                    <div id="progressBar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
+
+                <!-- Revenue Card -->
+                <div
+                    class="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <div class="relative z-10">
+                        <div class="text-slate-400 text-xs uppercase tracking-wider mb-1">Tahmini Gelir</div>
+                        <div class="text-3xl font-bold text-amber-400 flex items-baseline gap-1">
+                            <span class="text-lg">$</span>
+                            <span id="totalRevenue">0</span>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1">ARPU: $0.20 (Tahmini)</div>
+                    </div>
+                </div>
+
+                <!-- Rank Card -->
+                <div
+                    class="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <div class="relative z-10">
+                        <div class="text-slate-400 text-xs uppercase tracking-wider mb-1">Seviye</div>
+                        <div class="text-3xl font-bold text-purple-400" id="currentRank">Çaylak</div>
+                        <div class="text-[10px] text-slate-500 mt-1" id="nextRankProgress">Sonraki: Usta (10K)</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -52,28 +86,35 @@
     <main class="relative z-10 pb-32">
         <div class="max-w-2xl mx-auto px-4 relative" id="roadmapContainer">
             <!-- The connecting line will be drawn by CSS/JS -->
-            <div class="absolute left-1/2 top-0 bottom-0 w-1 bg-slate-800 -translate-x-1/2 z-0 hidden md:block" id="centerLine"></div>
-            
+            <div class="absolute left-1/2 top-0 bottom-0 w-1 bg-slate-800 -translate-x-1/2 z-0 hidden md:block"
+                id="centerLine"></div>
+
             <!-- Nodes will be injected here via JS -->
         </div>
     </main>
 
     <!-- Floating Action Button (Scroll to Current) -->
-    <button id="scrollToCurrentBtn" class="fixed bottom-8 right-8 z-50 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-full shadow-lg transform transition-all duration-300 hover:scale-110 hidden">
+    <button id="scrollToCurrentBtn"
+        class="fixed bottom-8 right-8 z-50 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-full shadow-lg transform transition-all duration-300 hover:scale-110 hidden">
         <i class="fas fa-crosshairs text-xl"></i>
     </button>
 
     <!-- Detail Modal -->
-    <div id="modalBackdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
-        <div id="modalContent" class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl transform scale-95 transition-all duration-300 opacity-0 relative overflow-hidden">
+    <div id="modalBackdrop"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+        <div id="modalContent"
+            class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl transform scale-95 transition-all duration-300 opacity-0 relative overflow-hidden">
             <!-- Modal Header -->
             <div class="p-6 border-b border-slate-700/50 relative">
-                <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <button id="closeModalBtn"
+                    class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
                     <i class="fas fa-times text-xl"></i>
                 </button>
                 <div class="flex items-center gap-3 mb-2">
-                    <span id="modalDate" class="px-2 py-1 bg-slate-700 rounded text-xs text-slate-300 font-mono">15 Şubat</span>
-                    <span id="modalPhase" class="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded text-xs font-semibold tracking-wide">LANSMAN</span>
+                    <span id="modalDate" class="px-2 py-1 bg-slate-700 rounded text-xs text-slate-300 font-mono">15
+                        Şubat</span>
+                    <span id="modalPhase"
+                        class="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded text-xs font-semibold tracking-wide">LANSMAN</span>
                 </div>
                 <h2 id="modalTitle" class="text-2xl font-bold text-white mb-1">Gün 1</h2>
                 <h3 id="modalSubtitle" class="text-lg text-emerald-400 font-medium">Go Live</h3>
@@ -81,7 +122,7 @@
 
             <!-- Modal Body -->
             <div class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                
+
                 <!-- Tasks -->
                 <div class="mb-6">
                     <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Görevler</h4>
@@ -91,14 +132,35 @@
                 </div>
 
                 <!-- Metrics & Budget -->
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
                         <div class="text-slate-500 text-xs mb-1">Butçe</div>
                         <div id="modalBudget" class="text-slate-200 font-mono">$50</div>
                     </div>
                     <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
                         <div class="text-slate-500 text-xs mb-1">Hedef Metrik</div>
-                        <div id="modalMetric" class="text-slate-200 font-medium">500 indirme</div>
+                        <div id="modalMetric" class="text-slate-200 font-medium">500</div>
+                    </div>
+                    <!-- New Modal Stats -->
+                    <div
+                        class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 col-span-2 flex justify-between items-center">
+                        <div class="text-slate-500 text-xs">Bu Günün Geliri</div>
+                        <div class="text-amber-400 font-bold font-mono">$<span id="modalRevenue">0.00</span></div>
+                    </div>
+                </div>
+
+                <!-- User Inputs: Actuals & Notes -->
+                <div class="space-y-4 mb-6 pt-4 border-t border-slate-700/50">
+                    <div>
+                        <label class="block text-slate-400 text-xs uppercase tracking-wider mb-2">Gerçekleşen
+                            İndirme</label>
+                        <input type="number" id="modalActualDownloads" placeholder="Örn: 550"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs uppercase tracking-wider mb-2">Günlük Notlar</label>
+                        <textarea id="modalNotes" rows="3" placeholder="Bugün neler oldu?"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
                     </div>
                 </div>
 
@@ -106,16 +168,18 @@
 
             <!-- Modal Footer -->
             <div class="p-6 border-t border-slate-700/50 flex justify-end">
-                <button id="completeDayBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl transition-all duration-300 font-medium flex items-center gap-2">
+                <button id="completeDayBtn"
+                    class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl transition-all duration-300 font-medium flex items-center gap-2">
                     <i class="fas fa-check"></i>
                     <span>Tamamla</span>
                 </button>
             </div>
-            
+
             <!-- Confetti Canvas embedded if needed, or global -->
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
+
 </html>

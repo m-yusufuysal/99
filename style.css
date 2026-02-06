@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -11,7 +10,7 @@
 body {
     font-family: 'Outfit', sans-serif;
     background-color: var(--bg-dark);
-    background-image: 
+    background-image:
         radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 20%);
 }
@@ -20,15 +19,18 @@ body {
 ::-webkit-scrollbar {
     width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: #0f172a; 
+    background: #0f172a;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: #334155; 
+    background: #334155;
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #475569; 
+    background: #475569;
 }
 
 /* Winding Path Logic */
@@ -43,7 +45,7 @@ body {
     transition: background 0.5s ease;
 }
 
-.node-item.completed + .node-connector,
+.node-item.completed+.node-connector,
 .node-item.completed .node-connector {
     background: #10b981;
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
@@ -67,28 +69,54 @@ body {
 .status-completed {
     border-left: 4px solid #10b981;
 }
+
 .status-current {
     border-left: 4px solid #3b82f6;
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
     animation: pulse-glow 2s infinite;
 }
+
 .status-future {
     border-left: 4px solid #64748b;
     opacity: 0.7;
 }
 
 @keyframes pulse-glow {
-    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
 }
 
-/* Checkbox Animation */
-.custom-checkbox input:checked + div {
+/* Scrollbar hidden for modal content if desired, using custom-scrollbar class */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+/* Input Focus Glow */
+input:focus,
+textarea:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.custom-checkbox input:checked+div {
     background-color: #10b981;
     border-color: #10b981;
 }
-.custom-checkbox input:checked + div i {
+
+.custom-checkbox input:checked+div i {
     opacity: 1;
     transform: scale(1);
 }
