@@ -1,0 +1,107 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-dark: #0f172a;
+    --card-bg: #1e293b;
+    --primary: #10b981;
+    --accent: #06b6d4;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 20%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a; 
+}
+::-webkit-scrollbar-thumb {
+    background: #334155; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569; 
+}
+
+/* Winding Path Logic */
+/* We will simulate a winding path by positioning nodes alternating left/right on desktop */
+
+/* Node connection lines */
+.node-connector {
+    position: absolute;
+    width: 2px;
+    background: #1e293b;
+    z-index: 0;
+    transition: background 0.5s ease;
+}
+
+.node-item.completed + .node-connector,
+.node-item.completed .node-connector {
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* Card Styles */
+.glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Status colors */
+.status-completed {
+    border-left: 4px solid #10b981;
+}
+.status-current {
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    animation: pulse-glow 2s infinite;
+}
+.status-future {
+    border-left: 4px solid #64748b;
+    opacity: 0.7;
+}
+
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+/* Checkbox Animation */
+.custom-checkbox input:checked + div {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+.custom-checkbox input:checked + div i {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Modal Animation */
+.modal-open {
+    overflow: hidden;
+}
+
+/* Mobile Connector - Simple vertical line */
+@media (max-width: 768px) {
+    #centerLine {
+        left: 20px;
+        transform: none;
+    }
+}
