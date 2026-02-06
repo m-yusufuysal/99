@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>99 Gün Strateji - Günlük Plan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .day-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .day-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .day-card.completed {
+            border-left-color: #10b981;
+            background: linear-gradient(to right, #f0fdf4, #ffffff);
+        }
+        .day-card.current {
+            border-left-color: #3b82f6;
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+        }
+        .day-card.future {
+            border-left-color: #6b7280;
+        }
+        .task-item {
+            transition: all 0.2s ease;
+        }
+        .task-item:hover {
+            background-color: #f9fafb;
+            padding-left: 1rem;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-calendar-check text-blue-600"></i>
+                99 Gün Strateji Planı
+            </h1>
+            <p class="text-gray-600">Gün gün takvim ve yapılacaklar listesi</p>
+        </header>
+
+        <!-- İstatistikler -->
+        <section id="statsSection" class="mb-8 hidden">
+            <div class="stats-card text-white rounded-lg shadow-lg p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <i class="fas fa-calendar-day text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold" id="totalDays">0</h3>
+                        <p class="text-sm opacity-90">Toplam Gün</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-check-circle text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold" id="completedDays">0</h3>
+                        <p class="text-sm opacity-90">Tamamlanan Gün</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-play-circle text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold" id="currentDay">0</h3>
+                        <p class="text-sm opacity-90">Bugün</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-hourglass-half text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold" id="remainingDays">0</h3>
+                        <p class="text-sm opacity-90">Kalan Gün</p>
+                    </div>
+                </div>
+                <!-- Progress Bar -->
+                <div class="mt-6">
+                    <div class="bg-white bg-opacity-20 rounded-full h-4 overflow-hidden">
+                        <div id="progressBar" class="progress-bar bg-white h-full rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center mt-2 text-sm" id="progressText">0% Tamamlandı</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtreler -->
+        <section id="filtersSection" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Görünüm:</label>
+                    <select id="viewFilter" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                        <option value="all">Tüm Günler</option>
+                        <option value="completed">Tamamlanan</option>
+                        <option value="current">Bugün</option>
+                        <option value="future">Gelecek</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Sayfa:</label>
+                    <select id="sheetSelect" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                        <option value="">Sayfa Seçin</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <input type="text" id="searchInput" placeholder="Gün veya görevlerde ara..." 
+                           class="w-full px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                </div>
+            </div>
+        </section>
+
+        <!-- Takvim Grid -->
+        <main>
+            <div id="loadingSpinner" class="flex justify-center items-center py-12 hidden">
+                <div class="loading-spinner"></div>
+            </div>
+            
+            <div id="calendarGrid" class="calendar-grid">
+                <!-- Gün kartları buraya eklenecek -->
+            </div>
+
+            <!-- Boş durum -->
+            <div id="emptyState" class="text-center py-12">
+                <i class="fas fa-file-excel text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-600 mb-2">Excel Dosyası Bekleniyor</h3>
+                <p class="text-gray-500 mb-4">99 gün strateji dosyasını yükleyin</p>
+                <button id="loadDefaultBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-download mr-2"></i>Otomatik Yükle
+                </button>
+            </div>
+
+            <!-- Excel Analizi -->
+            <div id="excelAnalysis" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-search text-blue-600"></i>
+                    Excel Veri Analizi
+                </h3>
+                <div id="analysisContent" class="text-sm text-gray-600"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let workbook = null;
+        let currentSheetName = '';
+        let dailyPlanData = [];
+
+        // Otomatik dosya yükleme
+        window.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            loadDefaultFile();
+        });
+
+        // Event listener'ları ayarla
+        function setupEventListeners() {
+            document.getElementById('loadDefaultBtn').addEventListener('click', loadDefaultFile);
+            document.getElementById('sheetSelect').addEventListener('change', onSheetChange);
+            document.getElementById('viewFilter').addEventListener('change', filterDays);
+            document.getElementById('searchInput').addEventListener('input', filterDays);
+        }
+
+        // Varsayılan dosyayı yükle
+        async function loadDefaultFile() {
+            try {
+                showLoading();
+                const response = await fetch('islamvy_99gun_strateji.xlsx');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const file = new File([blob], 'islamvy_99gun_strateji.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    handleFile(file);
+                } else {
+                    showError('Excel dosyası bulunamadı');
+                }
+            } catch (error) {
+                showError('Dosya yüklenemedi: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Dosya işleme
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Sayfa seçimi dropdown'ını doldur
+                    const sheetSelect = document.getElementById('sheetSelect');
+                    sheetSelect.innerHTML = '<option value="">Sayfa Seçin</option>';
+                    
+                    workbook.SheetNames.forEach(sheetName => {
+                        const option = document.createElement('option');
+                        option.value = sheetName;
+                        option.textContent = sheetName;
+                        sheetSelect.appendChild(option);
+                    });
+
+                    // İlk sayfayı otomatik seç
+                    if (workbook.SheetNames.length > 0) {
+                        currentSheetName = workbook.SheetNames[0];
+                        sheetSelect.value = currentSheetName;
+                        processSheetData(currentSheetName);
+                    }
+
+                    // Bölümleri göster
+                    document.getElementById('statsSection').classList.remove('hidden');
+                    document.getElementById('filtersSection').classList.remove('hidden');
+                    document.getElementById('emptyState').classList.add('hidden');
+                    hideError();
+
+                } catch (error) {
+                    showError('Excel dosyası okunamadı: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Sayfa değiştirme
+        function onSheetChange(e) {
+            currentSheetName = e.target.value;
+            if (currentSheetName) {
+                processSheetData(currentSheetName);
+            }
+        }
+
+        // Sayfa verilerini işle
+        function processSheetData(sheetName) {
+            if (!workbook || !sheetName) return;
+
+            showLoading();
+            
+            setTimeout(() => {
+                try {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (jsonData.length === 0) {
+                        showError('Sayfa boş veya okunamadı');
+                        hideLoading();
+                        return;
+                    }
+
+                    // Veriyi gün gün plan formatına dönüştür
+                    convertToDailyPlan(jsonData);
+                    loadProgress(); // Kaydedilmiş ilerlemeyi yükle
+                    displayCalendar();
+                    updateStats();
+                    hideLoading();
+                } catch (error) {
+                    showError('Veri işlenemedi: ' + error.message);
+                    hideLoading();
+                }
+            }, 100);
+        }
+
+        // Excel verisini günlük plan formatına dönüştür
+        function convertToDailyPlan(rawData) {
+            dailyPlanData = [];
+            
+            // Excel verisini analiz et
+            analyzeExcelData(rawData);
+            
+            // Başlık satırını bul (tarih içeren veya ilk veri içeren satır)
+            let headerRow = 0;
+            let dataStartRow = 1;
+            
+            // İlk 10 satırı kontrol et
+            for (let i = 0; i < Math.min(10, rawData.length); i++) {
+                if (rawData[i] && rawData[i].length > 0) {
+                    const hasData = rawData[i].some(cell => cell && cell.toString().trim());
+                    if (hasData) {
+                        headerRow = i;
+                        dataStartRow = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // Tarih sütununu bul
+            const headers = rawData[headerRow] || [];
+            let dateColIndex = -1;
+            let taskColIndex = -1;
+            
+            headers.forEach((header, index) => {
+                if (header) {
+                    const headerStr = header.toString().toLowerCase();
+                    if (headerStr.includes('tarih') || headerStr.includes('date') || isDateCell(header)) {
+                        dateColIndex = index;
+                    } else if (headerStr.includes('görev') || headerStr.includes('task') || 
+                              headerStr.includes('yapılacak') || headerStr.includes('plan')) {
+                        taskColIndex = index;
+                    }
+                }
+            });
+
+            // Başlangıç tarihini 9 Şubat 2026 olarak belirle
+            const startDate = new Date('2026-02-09');
+            startDate.setHours(0, 0, 0, 0);
+
+            // Her satırı gün olarak işle
+            let dayNumber = 1;
+            for (let i = dataStartRow; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || row.length === 0) continue;
+
+                // Boş satırları atla
+                const hasContent = row.some(cell => cell && cell.toString().trim());
+                if (!hasContent) continue;
+
+                const dateValue = dateColIndex >= 0 ? row[dateColIndex] : null;
+                let date = null;
+
+                // Tarih formatını kontrol et
+                if (dateValue) {
+                    if (typeof dateValue === 'number') {
+                        // Excel tarih formatı
+                        date = new Date((dateValue - 25569) * 86400 * 1000);
+                    } else if (typeof dateValue === 'string') {
+                        // String tarih formatı
+                        date = new Date(dateValue);
+                    }
+                }
+
+                // Eğer tarih bulunamazsa, gün numarasına göre tarih oluştur
+                if (!date || isNaN(date.getTime())) {
+                    date = new Date(startDate);
+                    date.setDate(startDate.getDate() + (dayNumber - 1));
+                }
+
+                // Görevleri topla
+                const tasks = [];
+                
+                // Önce görev sütununu kontrol et
+                if (taskColIndex >= 0 && row[taskColIndex]) {
+                    const taskText = row[taskColIndex].toString().trim();
+                    if (taskText) {
+                        // Virgül veya noktalı virgülle ayrılmış görevleri böl
+                        const separatedTasks = taskText.split(/[,;]\s*/).filter(t => t.trim());
+                        tasks.push(...separatedTasks);
+                    }
+                }
+                
+                // Diğer sütunlardaki verileri de görev olarak ekle
+                for (let j = 0; j < row.length; j++) {
+                    if (j !== dateColIndex && j !== taskColIndex && row[j] && row[j].toString().trim()) {
+                        const cellValue = row[j].toString().trim();
+                        // Başlıkları ve boş değerleri atla
+                        if (cellValue && !headers[j] || (headers[j] && cellValue !== headers[j].toString())) {
+                            tasks.push(cellValue);
+                        }
+                    }
+                }
+
+                // Eğer görev yoksa varsayılan görev ekle
+                if (tasks.length === 0) {
+                    tasks.push(`Gün ${dayNumber} planı`);
+                }
+
+                dailyPlanData.push({
+                    day: dayNumber,
+                    date: date,
+                    tasks: tasks,
+                    status: getDayStatus(date),
+                    completed: false // Başlangıçta hiçbir gün tamamlanmamış
+                });
+                
+                dayNumber++;
+                
+                // Maksimum 99 gün limiti
+                if (dayNumber > 99) break;
+            }
+
+            // Tarihe göre sırala
+            dailyPlanData.sort((a, b) => a.date - b.date);
+        }
+
+        // Excel verilerini analiz et
+        function analyzeExcelData(rawData) {
+            const analysis = document.getElementById('analysisContent');
+            const analysisDiv = document.getElementById('excelAnalysis');
+            
+            let html = '<div class="space-y-2">';
+            html += `<p><strong>Toplam Satır:</strong> ${rawData.length}</p>`;
+            
+            // İlk birkaç satırı göster
+            html += '<p><strong>İlk 5 Satır:</strong></p>';
+            html += '<div class="bg-gray-50 p-3 rounded text-xs">';
+            
+            for (let i = 0; i < Math.min(5, rawData.length); i++) {
+                const row = rawData[i] || [];
+                const rowText = row.map(cell => cell ? cell.toString().substring(0, 30) : '').join(' | ');
+                html += `<div class="mb-1">Satır ${i+1}: ${rowText}</div>`;
+            }
+            
+            html += '</div>';
+            html += '</div>';
+            
+            analysis.innerHTML = html;
+            analysisDiv.classList.remove('hidden');
+        }
+
+        // Gün durumunu belirle
+        function getDayStatus(date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const compareDate = new Date(date);
+            compareDate.setHours(0, 0, 0, 0);
+
+            // Başlangıç tarihi 9 Şubat 2026 olduğu için durumu belirle
+            if (compareDate.getTime() === today.getTime()) return 'current';
+            if (compareDate > today) return 'future';
+            return 'future'; // Geçmiş günler de tamamlanmamış olarak gösterilir
+        }
+
+        // Takvimi görüntüle
+        function displayCalendar() {
+            const container = document.getElementById('calendarGrid');
+            const filteredData = getFilteredData();
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">Gösterilecek gün bulunamadı</div>';
+                return;
+            }
+
+            container.innerHTML = filteredData.map(day => createDayCard(day)).join('');
+        }
+
+        // Gün kartı oluştur
+        function createDayCard(dayData) {
+            const statusClass = dayData.completed ? 'completed' : dayData.status;
+            const statusIcon = dayData.completed ? 'check-circle' : 
+                              dayData.status === 'current' ? 'play-circle' : 'clock';
+            const statusColor = dayData.completed ? 'green' : 
+                               dayData.status === 'current' ? 'blue' : 'gray';
+            
+            // Tarih formatını düzgün şekilde oluştur
+            const day = dayData.date.getDate();
+            const month = dayData.date.toLocaleDateString('tr-TR', { month: 'long' });
+            const year = dayData.date.getFullYear();
+            const dateStr = `${day} ${month} ${year}`;
+
+            const statusText = dayData.completed ? 'Tamamlandı' : 
+                              dayData.status === 'current' ? 'Bugün' : 'Gelecek';
+
+            return `
+                <div class="day-card ${statusClass} bg-white rounded-lg shadow-md p-6 cursor-pointer" 
+                     onclick="toggleDayComplete(${dayData.day - 1})">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-${statusColor}-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-${statusIcon} text-${statusColor}-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Gün ${dayData.day}</h3>
+                                <p class="text-sm text-gray-600">${dateStr}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-${statusColor}-100 text-${statusColor}-800 text-xs font-medium rounded-full">
+                            ${statusText}
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-tasks mr-2"></i>Yapılacaklar:
+                        </h4>
+                        ${dayData.tasks.map((task, index) => `
+                            <div class="task-item flex items-start gap-2 p-2 rounded">
+                                <i class="fas fa-${dayData.completed ? 'check-square text-green-600' : 'square text-gray-400'} text-xs mt-1"></i>
+                                <p class="text-sm ${dayData.completed ? 'text-gray-500 line-through' : 'text-gray-700'} flex-1">${task}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <button class="w-full ${dayData.completed ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                                onclick="event.stopPropagation(); toggleDayComplete(${dayData.day - 1})">
+                            <i class="fas fa-${dayData.completed ? 'undo' : 'check'} mr-2"></i>
+                            ${dayData.completed ? 'Tamamlamayı Geri Al' : 'Günü Tamamla'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Gün tamamlama durumunu değiştir
+        function toggleDayComplete(dayIndex) {
+            if (dailyPlanData[dayIndex]) {
+                dailyPlanData[dayIndex].completed = !dailyPlanData[dayIndex].completed;
+                displayCalendar();
+                updateStats();
+                
+                // localStorage'a kaydet
+                saveProgress();
+            }
+        }
+
+        // İlerlemeyi kaydet
+        function saveProgress() {
+            const progress = dailyPlanData.map(day => ({
+                day: day.day,
+                completed: day.completed
+            }));
+            localStorage.setItem('99gun_progress', JSON.stringify(progress));
+        }
+
+        // İlerlemeyi yükle
+        function loadProgress() {
+            const saved = localStorage.getItem('99gun_progress');
+            if (saved) {
+                try {
+                    const progress = JSON.parse(saved);
+                    progress.forEach(savedDay => {
+                        const day = dailyPlanData.find(d => d.day === savedDay.day);
+                        if (day) {
+                            day.completed = savedDay.completed;
+                        }
+                    });
+                } catch (error) {
+                    console.error('İlerleme yüklenemedi:', error);
+                }
+            }
+        }
+
+        // Filtrelenmiş veriyi al
+        function getFilteredData() {
+            const viewFilter = document.getElementById('viewFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = dailyPlanData;
+
+            // Görünüm filtresi - tamamlanma durumuna göre
+            if (viewFilter === 'completed') {
+                filtered = filtered.filter(day => day.completed);
+            } else if (viewFilter === 'current') {
+                filtered = filtered.filter(day => day.status === 'current' && !day.completed);
+            } else if (viewFilter === 'future') {
+                filtered = filtered.filter(day => day.status === 'future' && !day.completed);
+            }
+
+            // Arama filtresi
+            if (searchTerm) {
+                filtered = filtered.filter(day => 
+                    day.day.toString().includes(searchTerm) ||
+                    day.tasks.some(task => task.toLowerCase().includes(searchTerm)) ||
+                    day.date.toLocaleDateString('tr-TR').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            return filtered;
+        }
+
+        // Filtreleme
+        function filterDays() {
+            displayCalendar();
+        }
+
+        // İstatistikleri güncelle
+        function updateStats() {
+            const total = dailyPlanData.length;
+            const completed = dailyPlanData.filter(d => d.completed).length;
+            const current = dailyPlanData.filter(d => d.status === 'current' && !d.completed).length;
+            const remaining = dailyPlanData.filter(d => d.status === 'future' && !d.completed).length;
+            const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('totalDays').textContent = total;
+            document.getElementById('completedDays').textContent = completed;
+            document.getElementById('currentDay').textContent = current;
+            document.getElementById('remainingDays').textContent = remaining;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress + '% Tamamlandı';
+        }
+
+        // Yardımcı fonksiyonlar
+        function isDateCell(value) {
+            if (!value) return false;
+            if (typeof value === 'number') {
+                // Excel tarih formatı (genellikle 40000+ civarında)
+                return value > 40000 && value < 50000;
+            }
+            if (typeof value === 'string') {
+                const date = new Date(value);
+                return !isNaN(date.getTime());
+            }
+            return false;
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+            document.getElementById('calendarGrid').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            document.getElementById('calendarGrid').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            console.error(message);
+            // Hata mesajını göstermek için bir toast veya alert eklenebilir
+        }
+
+        function hideError() {
+            // Hata mesajını gizle
+        }
+    </script>
+</body>
+</html>
