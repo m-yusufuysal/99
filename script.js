@@ -148,77 +148,120 @@ function isDateInRamadan(dateObj) {
     return dateObj >= RAMADAN_START && dateObj <= RAMADAN_END;
 }
 
+// 3D Tilt Logic
+function handleTilt(e, card) {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = ((y - centerY) / centerY) * -10; // Max 10 deg rotation
+    const rotateY = ((x - centerX) / centerX) * 10;
+
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+}
+
+function resetTilt(card) {
+    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+}
+
 function createNode(data, index, status, isRamadan) {
     const isLeft = index % 2 === 0;
 
     const div = document.createElement('div');
-    div.className = `relative z-10 mb-8 flex items-center md:justify-center w-full group transition-all duration-500`;
+    div.className = `relative z-10 mb-12 flex items-center md:justify-center w-full group`;
 
     // Status Classes
-    let statusColorClass = 'bg-slate-700 border-slate-600';
-    let iconClass = 'fa-lock text-slate-500';
+    let statusColorClass = 'bg-slate-900 border-slate-700';
+    let iconClass = 'fa-lock text-slate-600';
     let glowClass = '';
 
-    // Ramadan Highlight Override
+    // Ramadan Highlight
     let extraBorderClass = '';
     let moonIcon = '';
 
     if (isRamadan) {
-        extraBorderClass = 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]';
-        moonIcon = '<div class="absolute -top-3 -right-3 text-2xl animate-pulse">🌙</div>';
+        extraBorderClass = 'border-amber-500/30 ring-1 ring-amber-500/20';
+        moonIcon = '<div class="absolute -top-3 -right-3 text-2xl animate-bounce z-30 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">🌙</div>';
     }
 
     if (status === 'completed') {
-        statusColorClass = 'bg-emerald-900/40 border-emerald-500/50 hover:border-emerald-400';
-        iconClass = 'fa-check text-emerald-400';
+        statusColorClass = 'status-completed';
+        iconClass = 'fa-check-circle text-emerald-400';
     } else if (status === 'current') {
-        statusColorClass = 'bg-slate-800 border-indigo-500 hover:border-indigo-400';
-        iconClass = 'fa-play text-indigo-400';
-        glowClass = 'shadow-[0_0_30px_rgba(99,102,241,0.2)] scale-105';
+        statusColorClass = 'status-current';
+        iconClass = 'fa-play-circle text-violet-400';
+    } else {
+        statusColorClass = 'status-future';
     }
 
-    // Has Revenue?
+    // Revenue Badge
     const state = getState(index);
     const hasDownloads = state.actualDownloads && state.actualDownloads > 0;
-    const revenueBadge = hasDownloads ? `<div class="absolute -bottom-3 right-4 bg-slate-900 border border-slate-600 px-2 py-0.5 rounded-full text-[10px] text-amber-400 font-mono shadow-lg">$${(state.actualDownloads * ARPU).toFixed(0)}</div>` : '';
+    const revenueBadge = hasDownloads ? `<div class="absolute -bottom-3 right-6 bg-slate-950 border border-amber-500/50 px-3 py-1 rounded-full text-xs text-amber-400 font-mono shadow-[0_4px_10px_rgba(0,0,0,0.5)] z-20 flex items-center gap-1"><i class="fas fa-coins text-[10px]"></i> $${(state.actualDownloads * ARPU).toFixed(0)}</div>` : '';
+
+    // Task Previews (New Feature)
+    const taskPreviews = data.tasks.slice(0, 3).map((t, i) => {
+        const isDone = state.tasks && state.tasks.includes(i);
+        return `
+            <div class="flex items-center gap-2 text-[11px] ${isDone ? 'text-slate-500 line-through' : 'text-slate-400'}">
+                <div class="w-1.5 h-1.5 rounded-full ${isDone ? 'bg-emerald-500' : 'bg-slate-600'}"></div>
+                <span class="truncate">${t}</span>
+            </div>
+        `;
+    }).join('');
+
+    const moreTasksCount = Math.max(0, data.tasks.length - 3);
+    const moreTasksLabel = moreTasksCount > 0 ? `<div class="text-[10px] text-slate-500 mt-1 pl-3.5">+${moreTasksCount} detay daha</div>` : '';
 
     const cardHTML = `
-        <div class="glass-card w-full md:w-5/12 p-5 rounded-xl border ${statusColorClass} ${extraBorderClass} ${glowClass} cursor-pointer relative overflow-visible group"
-             onclick="openModal(${index})">
+        <div class="glass-card w-full md:w-5/12 p-6 rounded-2xl ${statusColorClass} ${extraBorderClass} cursor-pointer relative overflow-visible"
+             onclick="openModal(${index})"
+             onmousemove="handleTilt(event, this)"
+             onmouseleave="resetTilt(this)">
             
             ${moonIcon}
             ${revenueBadge}
 
             <!-- Connector Dot -->
-            <div class="absolute top-1/2 -translate-y-1/2 ${isLeft ? 'md:-right-12 -left-10' : 'md:-left-12 -left-10'} w-6 h-6 rounded-full border-2 border-slate-700 bg-slate-900 z-20 flex items-center justify-center transition-colors duration-300
-                ${status === 'completed' ? '!border-emerald-500 !bg-emerald-500' : ''}
-                ${status === 'current' ? '!border-indigo-500 !bg-indigo-500 animate-pulse' : ''}
+            <div class="absolute top-1/2 -translate-y-1/2 ${isLeft ? 'md:-right-12 -left-10' : 'md:-left-12 -left-10'} w-6 h-6 rounded-full border-4 border-slate-900 bg-slate-700 z-20 flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.5)]
+                ${status === 'completed' ? '!bg-emerald-500 !border-slate-900 scale-110' : ''}
+                ${status === 'current' ? '!bg-violet-500 !border-slate-800 scale-125 hover:scale-150 shadow-[0_0_20px_rgba(139,92,246,0.6)]' : ''}
             ">
-                <i class="fas ${status === 'completed' ? 'fa-check text-[10px] text-white' : ''} "></i>
+                ${status === 'current' ? '<div class="absolute inset-0 rounded-full animate-ping bg-violet-500 opacity-50"></div>' : ''}
             </div>
             
             <!-- Content -->
-            <div class="flex justify-between items-start">
-                <div>
-                     <div class="text-xs font-mono text-slate-400 mb-1 flex items-center gap-2">
-                        <span class="${status === 'current' ? 'text-indigo-400 font-bold' : ''}">${data.date}</span>
-                        ${status === 'current' ? '<span class="px-1.5 py-0.5 bg-indigo-500/20 rounded text-[10px] text-indigo-300">BUGÜN</span>' : ''}
-                        ${isRamadan ? '<span class="px-1.5 py-0.5 bg-amber-500/20 rounded text-[10px] text-amber-300 border border-amber-500/30">RAMAZAN</span>' : ''}
-                     </div>
-                     <h3 class="text-lg font-bold text-slate-100 group-hover:text-white transition-colors">
-                        <span class="text-slate-500 mr-2 text-sm">#${data.day_display}</span>
-                        ${data.title}
-                     </h3>
-                     <p class="text-sm text-slate-400 mt-1 line-clamp-2">${data.subtitle}</p>
+            <div class="card-content flex flex-col gap-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                         <div class="text-[10px] font-bold tracking-widest uppercase mb-1 flex items-center gap-2">
+                            <span class="${status === 'current' ? 'text-violet-400' : 'text-slate-500'}">${data.date}</span>
+                            ${status === 'current' ? '<span class="px-1.5 py-0.5 bg-violet-500/20 rounded text-[9px] text-violet-300 border border-violet-500/30">BUGÜN</span>' : ''}
+                            ${isRamadan ? '<span class="px-1.5 py-0.5 bg-amber-500/10 rounded text-[9px] text-amber-300 border border-amber-500/20">RAMAZAN</span>' : ''}
+                         </div>
+                         <h3 class="text-xl font-bold text-slate-100 leading-tight font-display mb-1">
+                            <span class="text-slate-600 mr-1 text-sm font-mono opacity-50">#${data.day_display}</span>
+                            ${data.title}
+                         </h3>
+                         <p class="text-xs text-slate-400 font-light tracking-wide">${data.subtitle}</p>
+                    </div>
                 </div>
-                <div class="flex flex-col items-end gap-2">
-                     <i class="fas ${iconClass} text-xl"></i>
-                     ${state.notes ? '<i class="fas fa-sticky-note text-center text-xs text-yellow-500/70" title="Not var"></i>' : ''}
+                
+                <!-- Divider -->
+                <div class="h-px w-full bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
+                
+                <!-- Task Previews -->
+                <div class="space-y-1">
+                    ${taskPreviews}
+                    ${moreTasksLabel}
                 </div>
             </div>
             
-            <!-- Progress Line (Mini) -->
-            ${getState(index).completed ? '<div class="absolute bottom-0 left-0 h-1 bg-emerald-500 w-full rounded-b-xl"></div>' : ''}
+            <!-- Progress Line (Mini bottom bar) -->
+            ${getState(index).completed ? '<div class="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-300 w-full rounded-b-xl shadow-[0_-1px_10px_rgba(16,185,129,0.5)]"></div>' : ''}
         </div>
     `;
 
